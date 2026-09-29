@@ -1,0 +1,13 @@
+# Reproduces reports/REPORT.md. Data: scripts/download_data.py --start 20180101 --end 20250630
+data_dir: data
+out_dir: reports
+start: "2018-01-01"
+end: "2025-06-30"
+split_date: "2022-01-01"   # in-sample 2018-2021, out-of-sample 2022-2025H1
+horizon: 5                 # forward return horizon for IC, trading days
+rebalance: 5               # quantile portfolio rebalance interval, trading days
+n_groups: 5
+cost_bps: 15               # per unit of one-way turnover (commission + stamp duty + slippage, approx.)
+neutralize_size: true
+composite_min_abs_t: 2.0
+factors: [mom_20, mom_120_skip20, rev_5, vol_20, turn_20, abn_turn, amihud_20, pv_corr_20, range_20, size]
