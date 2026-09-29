@@ -6,6 +6,7 @@ import json
 from typing import TYPE_CHECKING
 
 import matplotlib
+import matplotlib.ticker
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
@@ -34,7 +35,8 @@ QCOLORS = plt.cm.RdYlGn(np.linspace(0.1, 0.9, 10))
 def _quantile_metrics(q: ev.QuantileResult, cfg: Config) -> dict[str, float]:
     ppy = ev.TRADING_DAYS / cfg.rebalance
     top, bottom = q.top, q.bottom
-    ls_gross = ev.perf_stats(q.nav["long_short"])
+    # Long-short stats compound per-rebalance spreads, so gross and net share one basis.
+    ls_gross = ev.perf_stats(q.gross_nav("long_short"), ppy)
     ls_net = ev.perf_stats(q.net_nav("long_short"), ppy)
     excess = (
         1
@@ -104,6 +106,8 @@ def _factor_figure(r: FactorReport, cfg: Config, path) -> None:
     ax.plot(nav["universe"], color="grey", ls=":", lw=1.0, label="universe EW")
     ax.axvline(split, color="k", ls="--", lw=0.8)
     ax.set_yscale("log")
+    ax.yaxis.set_major_formatter(matplotlib.ticker.FormatStrFormatter("%.1f"))
+    ax.yaxis.set_minor_formatter(matplotlib.ticker.FormatStrFormatter("%.1f"))
     ax.legend(fontsize=7, ncol=3)
     sign = "" if r.direction > 0 else " (sign flipped)"
     ax.set_title(f"Quantile NAV, rebalance every {cfg.rebalance}d{sign}")
@@ -149,7 +153,7 @@ def _composite_oos_figure(q: ev.QuantileResult, cfg: Config, path) -> None:
     ax.legend(fontsize=7, ncol=3)
     ax.set_title(f"Composite, out-of-sample from {cfg.split_date}: quantile NAV")
     ax = axes[1]
-    ax.plot(q.nav["long_short"], color="#1f4e79", label="long-short gross (daily)")
+    ax.plot(q.gross_nav("long_short"), color="#1f4e79", label="long-short gross")
     ax.plot(q.net_nav("long_short"), color="#c0392b", label=f"long-short net of {cfg.cost_bps:.0f} bps/turnover")
     ax.legend(fontsize=7)
     ax.set_title("Composite long-short NAV (OOS)")

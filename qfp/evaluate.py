@@ -87,6 +87,10 @@ class QuantileResult:
     turnover: pd.DataFrame  # one-way turnover per rebalance per quantile
     cost_bps: float
 
+    def gross_nav(self, column: str) -> pd.Series:
+        """NAV compounded per rebalance period, before costs (same basis as ``net_nav``)."""
+        return (1 + self.period_returns[column]).cumprod()
+
     def net_nav(self, column: str) -> pd.Series:
         """NAV after costs, charging cost_bps per unit of one-way turnover at each rebalance."""
         gross = self.period_returns[column]
