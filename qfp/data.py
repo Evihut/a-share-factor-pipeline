@@ -12,6 +12,7 @@ point the rest of the pipeline uses.
 
 from __future__ import annotations
 
+import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -170,7 +171,10 @@ def download(data_dir: Path, start: str, end: str, pause: float = 0.5) -> None:
             time.sleep(pause)
     finally:
         if bs_session is not None:
-            bs_session.logout()
+            # baostock's logout can hang indefinitely; don't let it block the run.
+            t = threading.Thread(target=bs_session.logout, daemon=True)
+            t.start()
+            t.join(timeout=10)
     fetch_benchmark().loc[pd.Timestamp(start) : pd.Timestamp(end)].to_frame().to_parquet(data_dir / "benchmark.parquet")
     print(f"{len(from_baostock)} stocks came from the baostock fallback: {from_baostock}")
     if failed:
