@@ -1,0 +1,11 @@
+# Exact versions that produced reports/ (see README "Reproduce").
+numpy==2.2.3
+pandas==2.2.3
+scipy==1.15.3
+matplotlib==3.10.0
+pyarrow==19.0.0
+pyyaml==6.0.2
+akshare==1.18.64
+baostock==0.9.1
+pytest==8.3.4
+ruff==0.16.9

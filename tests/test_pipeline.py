@@ -233,3 +233,20 @@ def test_point_in_time_membership_from_snapshots():
     assert u.loc["2020-02-03":, [a, c]].all().all()
     assert not u.loc["2020-02-03":, b].any()
     assert tradable_universe(panel, min_history=1, point_in_time=False).all().all()
+
+
+def test_manifest_detects_changed_missing_and_extra_files(tmp_path):
+    from qfp.data import verify_manifest, write_manifest
+
+    (tmp_path / "raw").mkdir()
+    (tmp_path / "raw" / "000001.parquet").write_bytes(b"a")
+    (tmp_path / "membership_weekly.csv").write_text("date,code\n")
+    write_manifest(tmp_path)
+    assert verify_manifest(tmp_path) == []
+    (tmp_path / "raw" / "000001.parquet").write_bytes(b"b")
+    (tmp_path / "raw" / "000002.parquet").write_bytes(b"c")
+    (tmp_path / "membership_weekly.csv").unlink()
+    problems = verify_manifest(tmp_path)
+    assert "checksum mismatch: raw/000001.parquet" in problems
+    assert "missing: membership_weekly.csv" in problems
+    assert "not in manifest: raw/000002.parquet" in problems

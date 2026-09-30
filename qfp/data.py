@@ -177,6 +177,10 @@ def download(data_dir: Path, start: str, end: str, pause: float = 0.5) -> None:
             t.join(timeout=10)
     fetch_benchmark().loc[pd.Timestamp(start) : pd.Timestamp(end)].to_frame().to_parquet(data_dir / "benchmark.parquet")
     print(f"{len(from_baostock)} stocks came from the baostock fallback: {from_baostock}")
+    # Keep the committed reference manifest so a fresh download can be compared
+    # with the data behind the published report. Updating it is explicit.
+    if not (data_dir / MANIFEST).exists():
+        write_manifest(data_dir, note=f"download {start}..{end}")
     if failed:
         print(f"{len(failed)} codes failed: {failed}")
 
@@ -214,6 +218,69 @@ def load_panel(data_dir: Path) -> Panel:
         snapshots = pd.read_csv(member_path, dtype={"code": str})
         panel.membership = membership_mask(panel.dates, panel.codes, snapshots)
     return panel
+
+
+# --------------------------------------------------------------------------- manifest
+
+
+MANIFEST = "manifest.json"
+
+
+def _sha256(path: Path) -> str:
+    import hashlib
+
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def _data_files(data_dir: Path) -> list[Path]:
+    patterns = ["bars.parquet", "benchmark.parquet", "membership_weekly.csv", "raw/*.parquet"]
+    return sorted(p for pat in patterns for p in data_dir.glob(pat))
+
+
+def write_manifest(data_dir: Path, note: str = "") -> dict:
+    """Record what the data directory contains: SHA-256 per file plus the source
+    library versions, so a later run can tell whether it sees the same data."""
+    import datetime
+    import importlib.metadata as md
+    import json
+    import platform
+
+    def version(pkg: str) -> str | None:
+        try:
+            return md.version(pkg)
+        except md.PackageNotFoundError:
+            return None
+
+    manifest = {
+        "created_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
+        "note": note,
+        "python": platform.python_version(),
+        "sources": {"akshare": version("akshare"), "baostock": version("baostock"), "pandas": version("pandas")},
+        "files": {str(p.relative_to(data_dir)): _sha256(p) for p in _data_files(data_dir)},
+    }
+    (data_dir / MANIFEST).write_text(json.dumps(manifest, indent=1, sort_keys=True) + "\n")
+    return manifest
+
+
+def verify_manifest(data_dir: Path) -> list[str]:
+    """Return a list of problems (empty if every file matches the manifest)."""
+    import json
+
+    manifest = json.loads((data_dir / MANIFEST).read_text())
+    problems = []
+    for rel, digest in manifest["files"].items():
+        path = data_dir / rel
+        if not path.exists():
+            problems.append(f"missing: {rel}")
+        elif _sha256(path) != digest:
+            problems.append(f"checksum mismatch: {rel}")
+    extra = {str(p.relative_to(data_dir)) for p in _data_files(data_dir)} - set(manifest["files"])
+    problems += [f"not in manifest: {rel}" for rel in sorted(extra)]
+    return problems
 
 
 # --------------------------------------------------------------------------- synthetic
