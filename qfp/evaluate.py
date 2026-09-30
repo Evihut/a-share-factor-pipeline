@@ -84,7 +84,7 @@ def ic_decay(factor: pd.DataFrame, open_: pd.DataFrame, horizons=(1, 2, 5, 10, 2
 class QuantileResult:
     nav: pd.DataFrame  # daily NAV per quantile + long_short + universe (equal-weight)
     period_returns: pd.DataFrame  # per-rebalance returns, gross
-    turnover: pd.DataFrame  # one-way turnover per rebalance per quantile
+    turnover: pd.DataFrame  # one-way turnover 0.5 * sum|w_target - w_drifted| per rebalance per quantile
     cost_bps: float
 
     def gross_nav(self, column: str) -> pd.Series:
@@ -126,13 +126,19 @@ def quantile_backtest(
     Each bucket is bought equal-weight at open t+1 and held buy-and-hold until
     the next rebalance open, so the daily NAV reflects weight drift correctly.
     The long-short leg is Q_top minus Q1 (both legs rebalanced to equal weight).
+
+    Turnover at a rebalance is ``0.5 * sum_i |w_target_i - w_drifted_i|``, where
+    the drifted weights are the previous equal weights after a period of
+    buy-and-hold price moves. This counts both replaced names and the trades
+    needed to restore equal weights among names that stay. The first period
+    (building from cash) counts as 1.0.
     """
     dates = factor.index
     rel = open_ / open_.shift(1)  # open-to-open price relative, indexed by the later open
     labels = [f"Q{i + 1}" for i in range(n_groups)]
     daily = {c: [] for c in [*labels, "universe"]}
     period_rows, turnover_rows, period_index = [], [], []
-    prev_members: dict[str, set] = {}
+    drifted: dict[str, pd.Series] = {}  # weights held just before the next rebalance
 
     rebal_dates = dates[: len(dates) - rebalance - 1 : rebalance]
     for t in rebal_dates:
@@ -156,10 +162,11 @@ def quantile_backtest(
             daily[q].append(value / value.shift(1, fill_value=1.0) - 1.0)
             row[q] = value.iloc[-1] - 1.0
             if q != "universe":
-                old = prev_members.get(q, set())
-                new = set(members)
-                to_row[q] = 1.0 if not old else len(new - old) / max(len(new), 1)
-                prev_members[q] = new
+                target = pd.Series(1.0 / len(members), index=members)
+                old = drifted.get(q)
+                to_row[q] = 1.0 if old is None else 0.5 * target.sub(old, fill_value=0.0).abs().sum()
+                growth = path[members].iloc[-1]
+                drifted[q] = growth / growth.sum()
         row["long_short"] = row[labels[-1]] - row[labels[0]]
         period_rows.append(row)
         turnover_rows.append(to_row)

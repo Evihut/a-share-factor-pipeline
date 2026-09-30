@@ -23,8 +23,8 @@ The composite averages the factors whose in-sample |t| ≥ 2: `size` (large caps
 | ICIR per 5-day period / annualized | **0.20 / 1.44** |
 | t-stat (non-overlapping periods) | **3.47** |
 | Quintile monotonicity (Spearman of rank vs. return) | **1.00** |
-| Q5 − Q1 annualized return, gross / net of costs | 14.0% / 5.3% |
-| Q5 − Q1 Sharpe, gross / net | 0.97 / 0.43 |
+| Q5 − Q1 annualized return, gross / net of costs | 14.0% / 5.2% |
+| Q5 − Q1 Sharpe, gross / net | 0.97 / 0.42 |
 | Top quintile excess return vs. equal-weight universe | 4.3% / yr (IR 0.59) |
 
 ![composite OOS](reports/figures/composite_oos.png)
@@ -33,14 +33,14 @@ The composite averages the factors whose in-sample |t| ≥ 2: `size` (large caps
 
 | Factor | RankIC | ICIR (ann.) | t | RankIC IS → OOS | Q5−Q1 gross | Q5−Q1 net |
 |---|---:|---:|---:|---|---:|---:|
-| `pv_corr_20` | −0.027 | −1.35 | −3.10 | −0.030 → −0.025 | 11.2% | 4.2% |
-| `turn_20` | −0.037 | −1.42 | −3.74 | −0.020 → −0.055 | 8.3% | 6.7% |
-| `amihud_20` | 0.020 | 1.04 | 2.62 | 0.012 → 0.029 | 6.7% | 4.9% |
-| `size` | 0.030 | 1.20 | 3.17 | 0.025 → 0.036 | 4.3% | 3.6% |
-| `range_20` | −0.045 | −1.45 | −3.82 | −0.016 → −0.077 | 3.9% | 1.6% |
-| `vol_20` | −0.038 | −1.30 | −3.25 | −0.016 → −0.063 | 1.0% | −2.3% |
-| `mom_20` | −0.021 | −0.79 | −2.10 | −0.022 → −0.020 | 2.5% | −3.4% |
-| `rev_5` | 0.009 | 0.37 | 1.48 | 0.018 → −0.001 | 0.1% | −11.0% |
+| `pv_corr_20` | −0.027 | −1.35 | −3.10 | −0.030 → −0.025 | 11.2% | 4.0% |
+| `turn_20` | −0.037 | −1.42 | −3.74 | −0.020 → −0.055 | 8.3% | 6.5% |
+| `amihud_20` | 0.020 | 1.04 | 2.62 | 0.012 → 0.029 | 6.7% | 4.7% |
+| `size` | 0.030 | 1.20 | 3.17 | 0.025 → 0.036 | 4.3% | 3.4% |
+| `range_20` | −0.045 | −1.45 | −3.82 | −0.016 → −0.077 | 3.9% | 1.4% |
+| `vol_20` | −0.038 | −1.30 | −3.25 | −0.016 → −0.063 | 1.0% | −2.4% |
+| `mom_20` | −0.021 | −0.79 | −2.10 | −0.022 → −0.020 | 2.5% | −3.5% |
+| `rev_5` | 0.009 | 0.37 | 1.48 | 0.018 → −0.001 | 0.1% | −11.1% |
 
 The full table (10 factors plus the composite), IC decay, factor correlations and a tear sheet per factor are in
 [`reports/REPORT.md`](reports/REPORT.md).
@@ -53,7 +53,8 @@ What the results show:
   After 2022 they became much stronger, with low-risk, low-attention stocks winning. `range_20` alone reached an
   OOS RankIC of −0.077. The composite deliberately excludes it because it failed the in-sample test, so the
   OOS evaluation stays clean.
-- **Costs.** Costs roughly halve the composite's long-short return. Turnover matters as much as IC here.
+- **Costs.** Costs cut the composite's OOS long-short return from 14.0% to 5.2% a year, nearly two-thirds. Turnover
+  matters as much as IC here.
 
 ### Survivorship bias check
 
@@ -93,8 +94,9 @@ OLS neutralization against log float market cap → z-score.
 
 **Quantile (layered) backtest.** Every 5 days, eligible stocks are sorted into 5 equal-weight groups (Q1 = lowest
 factor). Each group is bought at the next open and held buy-and-hold until the next rebalance, so daily NAV reflects
-weight drift exactly. Long-short = Q5 − Q1. Turnover is the fraction of names replaced; costs are charged at 15 bps
-per unit of one-way turnover (commission + stamp duty + slippage, approximate).
+weight drift exactly. Long-short = Q5 − Q1. One-way turnover at each rebalance is `0.5 × Σ|w_target − w_drifted|`,
+which counts both replaced names and the trades needed to restore equal weights. Costs are charged at 15 bps per unit
+of one-way turnover (commission + stamp duty + slippage, approximate).
 
 **In-sample / out-of-sample.** 2018–2021 is in-sample, 2022-01 → 2025-06 out-of-sample. Each factor's sign and the
 composite's membership (in-sample |t| ≥ 2) are fitted on in-sample data only; the composite is an equal-weight

@@ -97,6 +97,35 @@ def test_costs_reduce_returns(planted):
     assert q.turnover["Q5"].iloc[1:].mean() > 0.6
 
 
+def test_turnover_counts_reweighting_of_unchanged_names():
+    """Same names every period: name-based turnover would be 0, but price drift
+    still forces trades to restore equal weight."""
+    dates = pd.bdate_range("2024-01-01", periods=40)
+    codes = [f"{i:06d}" for i in range(60)]
+    # half the names rise 1%/day, half are flat -> weights drift apart
+    growth = np.where(np.arange(60) < 30, 1.01, 1.0)
+    open_ = pd.DataFrame(np.cumprod(np.tile(growth, (40, 1)), axis=0), index=dates, columns=codes)
+    factor = pd.DataFrame(np.tile(np.arange(60.0), (40, 1)), index=dates, columns=codes)  # constant ranks
+    q = ev.quantile_backtest(factor, open_, n_groups=1, rebalance=5, min_names=10)
+    to = q.turnover["Q1"]
+    assert to.iloc[0] == pytest.approx(1.0)
+    # after 5 days the risers weigh g/(30g+30) and the flat names 1/(30g+30); every name is
+    # off its 1/60 target by the same amount, so turnover = 0.5 * 60 * |1/60 - g/(30g+30)|
+    g = 1.01**5
+    expected = 0.5 * 60 * abs(1 / 60 - (g / (30 * g + 30)))
+    assert to.iloc[1:].to_numpy() == pytest.approx(expected, rel=1e-9)
+    assert expected > 0.01
+
+
+def test_turnover_zero_without_drift_or_name_changes():
+    dates = pd.bdate_range("2024-01-01", periods=30)
+    codes = [f"{i:06d}" for i in range(60)]
+    open_ = pd.DataFrame(100.0, index=dates, columns=codes)
+    factor = pd.DataFrame(np.tile(np.arange(60.0), (30, 1)), index=dates, columns=codes)
+    q = ev.quantile_backtest(factor, open_, n_groups=5, rebalance=5, min_names=10)
+    assert (q.turnover.iloc[1:] == 0).all().all()
+
+
 def test_daily_nav_consistent_with_period_returns(planted):
     panel, signal = planted
     q = ev.quantile_backtest(signal, panel.open, rebalance=5, cost_bps=0)
