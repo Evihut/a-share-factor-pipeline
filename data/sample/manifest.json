@@ -1,0 +1,15 @@
+{
+ "created_utc": "2026-09-30T01:32:30+00:00",
+ "files": {
+  "bars.parquet": "a4bb692dc5bbe1a0a2b844a9f15cb22b4cf902c4b1f24a5f0a38abe3e0a80a49",
+  "benchmark.parquet": "05517254cf0b1c1a659d9d8492e9605e7de32491f1520052581e409a78870020",
+  "membership_weekly.csv": "a59ae8f2c808f2f6133b29ebf3cc8f530617756415764da0d3a7cc31568d0eaa"
+ },
+ "note": "sample of 100 stocks, seed 7, built by scripts/make_sample.py",
+ "python": "3.13.5",
+ "sources": {
+  "akshare": "1.18.64",
+  "baostock": "0.9.1",
+  "pandas": "2.2.3"
+ }
+}

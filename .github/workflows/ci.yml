@@ -16,4 +16,15 @@ jobs:
           pip install -r requirements.lock
           pip install --no-deps -e .
       - run: ruff check qfp tests scripts
+      - name: Verify frozen sample checksums
+        run: python scripts/data_manifest.py verify --data-dir data/sample
+      # includes tests/test_sample_regression.py: the full pipeline on the frozen
+      # sample must reproduce tests/expected/ exactly (to rounding)
       - run: pytest -q
+      - name: Mini study report on the frozen sample
+        run: python -m qfp.pipeline --config configs/sample.yaml
+      - uses: actions/upload-artifact@v4
+        if: matrix.python == '3.12'
+        with:
+          name: sample-report
+          path: reports_sample/

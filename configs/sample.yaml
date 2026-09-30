@@ -1,0 +1,14 @@
+# Mini study on the committed frozen sample (data/sample): 100 stocks, 2019-2023.
+# Run by CI and tests/test_sample_regression.py; not a substitute for the full study.
+data_dir: data/sample
+out_dir: reports_sample
+start: "2019-01-01"
+end: "2023-12-31"
+split_date: "2022-01-01"
+horizon: 5
+rebalance: 5
+n_groups: 5
+cost_bps: 15
+neutralize_size: true
+composite_min_abs_t: 1.0   # small universe: looser in-sample filter so the composite is non-empty
+factors: [mom_20, mom_120_skip20, rev_5, vol_20, turn_20, abn_turn, amihud_20, pv_corr_20, range_20, size]

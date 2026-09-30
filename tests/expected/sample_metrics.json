@@ -1,0 +1,28 @@
+{
+  "period": "2019-01-02 to 2023-12-29",
+  "split_date": "2022-01-01",
+  "n_stocks": 100,
+  "avg_universe_size": 60.04200988467875,
+  "composite_members": [
+    "mom_20",
+    "rev_5",
+    "turn_20",
+    "pv_corr_20",
+    "size"
+  ],
+  "composite_oos_rank_ic": 0.05441301890687669,
+  "composite_oos_rank_icir": 0.2903670401925464,
+  "composite_oos_rank_icir_annual": 2.0614014913939167,
+  "composite_oos_t_stat": 3.037995511040372,
+  "composite_oos_ls_ann_return": 0.21694451057810227,
+  "composite_oos_ls_sharpe": 1.1496833376003286,
+  "composite_oos_ls_max_dd": -0.16179084247315867,
+  "composite_oos_ls_ann_return_net": 0.1363999266597169,
+  "composite_oos_ls_sharpe_net": 0.7795291674377605,
+  "composite_oos_top_ann_return_net": -0.1433460828833859,
+  "composite_oos_top_excess_ann": 0.02513721229864707,
+  "composite_oos_top_excess_ir": 0.29284610962831936,
+  "composite_oos_top_turnover": 0.4456249275809933,
+  "composite_oos_bottom_turnover": 0.4505263593695797,
+  "composite_oos_monotonicity": 0.49999999999999994
+}

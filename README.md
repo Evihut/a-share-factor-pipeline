@@ -121,22 +121,39 @@ Adding a factor is one function in [`qfp/factors.py`](qfp/factors.py) plus one e
 
 ## Reproduce
 
+**Quick check (about 1 minute, no network).** A frozen sample of real data is committed in `data/sample/`: 100
+stocks, 2019–2023, 4.4 MB, with SHA-256 checksums in `manifest.json`. CI runs the whole pipeline on it and requires
+the output to match `tests/expected/` exactly, up to rounding.
+
 ```bash
-pip install -e ".[data,dev]"
-python scripts/download_data.py --start 20180101 --end 20250630   # first run 1-2 h (rate-limited free APIs), resumable
-python -m qfp.pipeline --config configs/default.yaml                # ~30 s -> reports/
-python scripts/survivorship_check.py                                # -> reports/survivorship_bias.md
-pytest -q                                                           # offline, synthetic data
+pip install -r requirements.lock && pip install --no-deps -e .
+python scripts/data_manifest.py verify --data-dir data/sample
+python -m qfp.pipeline --config configs/sample.yaml       # -> reports_sample/
+pytest -q                                                  # includes the sample regression test
 ```
 
-`data/membership_weekly.csv` (the point-in-time membership snapshots, ~20 min to fetch from baostock) is committed,
-so the downloader only has to fetch price bars. The price cache itself (`data/raw/`) is not committed.
+**Full study.** Prices come from free APIs (Sina via akshare, with baostock for delisted names), and those APIs can
+change their history. `data/manifest.json` records the SHA-256 of every file behind `reports/`, plus the source
+library versions, so you can check whether a fresh download matches the one used here.
+
+```bash
+python scripts/download_data.py --start 20180101 --end 20250630   # first run 1-2 h (rate-limited), resumable
+python scripts/data_manifest.py verify                             # same data as reports/?
+python -m qfp.pipeline --config configs/default.yaml                # ~30 s -> reports/
+python scripts/survivorship_check.py                                # -> reports/survivorship_bias.md
+```
+
+`requirements.lock` pins the exact library versions that produced `reports/`; it was generated from
+`pyproject.toml` + `constraints.txt` with `uv pip compile --universal`. `data/membership_weekly.csv` (the
+point-in-time membership snapshots, about 20 min to fetch) is committed, so the downloader only has to fetch price
+bars. The full price cache (`data/raw/`) is not committed.
 
 The tests do not need network access: they run on a synthetic panel with a **planted** signal and check that the
 evaluator recovers it (positive IC, monotone quantiles), that pure noise gives IC ≈ 0, that a perfect-foresight
 factor gives IC = 1 (return alignment), that same-day information shows no forward IC (no look-ahead), that the
 buy-and-hold daily NAV compounds exactly to the per-period returns, and that limit-up / suspension / point-in-time
-membership masks behave as specified.
+membership masks behave as specified, that turnover counts re-weighting of names that stay in a portfolio (not
+just replaced names), and that the full pipeline reproduces the committed results on the frozen sample.
 
 ## Layout
 
@@ -149,8 +166,11 @@ qfp/
   pipeline.py     config-driven orchestration, in-sample selection, OOS composite
   report.py       summary tables (CSV / Markdown / JSON) and figures
 configs/default.yaml   the exact settings behind reports/
-scripts/download_data.py
-tests/          pytest suite on synthetic data
+configs/sample.yaml    mini study on the frozen sample
+data/sample/           frozen real-data sample + manifest (committed)
+scripts/               download_data, data_manifest (write/verify checksums), make_sample, survivorship_check
+tests/                 pytest: synthetic-data unit tests + frozen-sample regression (tests/expected/)
+requirements.lock      exact pinned dependencies
 ```
 
 ## Limitations

@@ -204,11 +204,16 @@ def membership_mask(dates: pd.DatetimeIndex, codes: pd.Index, snapshots: pd.Data
 
 
 def load_panel(data_dir: Path) -> Panel:
-    raw = data_dir / "raw"
-    files = sorted(raw.glob("*.parquet"))
-    if not files:
-        raise FileNotFoundError(f"no cached data in {raw}; run scripts/download_data.py first")
-    long = pd.concat([pd.read_parquet(f) for f in files], ignore_index=True)
+    """Load a data directory: either one parquet per stock under ``raw/`` (the
+    download cache) or a single long-format ``bars.parquet`` (the frozen sample)."""
+    bars = data_dir / "bars.parquet"
+    if bars.exists():
+        long = pd.read_parquet(bars)
+    else:
+        files = sorted((data_dir / "raw").glob("*.parquet"))
+        if not files:
+            raise FileNotFoundError(f"no cached data in {data_dir}; run scripts/download_data.py first")
+        long = pd.concat([pd.read_parquet(f) for f in files], ignore_index=True)
     long["code"] = long["code"].astype(str).str.zfill(6)
     bench_path = data_dir / "benchmark.parquet"
     bench = pd.read_parquet(bench_path)["benchmark"] if bench_path.exists() else None
